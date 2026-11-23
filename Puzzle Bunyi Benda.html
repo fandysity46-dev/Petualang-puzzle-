@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Puzzle Bunyi Benda</title>
+<style>
+:root{--bg1:#ffe9a8;--bg2:#ffc7e0;--ac:#ff7a59;--ac2:#7b61ff;--card:#fff;--tx:#3b2f63;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-t=laut]{--bg1:#bdeaff;--bg2:#c9d9ff;--ac:#1e9bd7;--ac2:#00b894}
+:root[data-t=hutan]{--bg1:#d4f5b5;--bg2:#fff1a8;--ac:#3fa34d;--ac2:#e17a2e}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--card:#fff;--tx:#3b2f63}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:"Comic Sans MS","Chalkboard SE","Trebuchet MS",sans-serif}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100vh;background:linear-gradient(160deg,var(--bg1),var(--bg2));color:var(--tx);display:flex;justify-content:center;padding:12px;touch-action:manipulation}
+.app{width:100%;max-width:460px}
+h1{margin:4px 0 8px;text-align:center;font-size:26px;text-shadow:0 2px 0 #fff}
+.card{background:var(--card);border-radius:22px;padding:10px;margin-bottom:10px;box-shadow:0 5px 0 rgba(0,0,0,.12)}
+.lbl{font-size:13px;font-weight:700;margin:2px 4px 4px;opacity:.8}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{flex:1;min-width:70px;border:3px solid transparent;background:#f2eefc;border-radius:16px;padding:8px 4px;font-size:15px;font-weight:700;color:var(--tx);cursor:pointer}
+.chip.on{background:var(--ac2);color:#fff;border-color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.2)}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:var(--card);border-radius:18px;padding:8px;text-align:center;font-size:20px;font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.12)}
+.wrap{position:relative;width:100%;aspect-ratio:1}
+.board{display:grid;gap:4px;width:100%;height:100%;background:#fff;border-radius:18px;padding:4px;box-shadow:0 5px 0 rgba(0,0,0,.15)}
+.cell{border-radius:10px;background-color:#eee;cursor:pointer;transition:transform .15s;border:3px solid #fff;min-width:0;min-height:0}
+.cell.sel{border-color:var(--ac);transform:scale(.93);box-shadow:0 0 0 3px var(--ac)}
+.cell.hint{animation:pulse .5s infinite alternate;border-color:#ffd000}
+@keyframes pulse{to{transform:scale(.88);box-shadow:0 0 12px 4px #ffd000}}
+.cover{position:absolute;inset:0;border-radius:18px;background:rgba(59,47,99,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:22px;text-align:center;gap:10px;padding:16px}
+.cover.hide{display:none}
+.cover.win{background:rgba(255,255,255,.93);color:var(--tx);font-size:28px;font-weight:700}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.b{border:0;border-radius:18px;padding:14px 6px;font-size:18px;font-weight:700;color:#fff;background:var(--ac);box-shadow:0 5px 0 rgba(0,0,0,.25);cursor:pointer}
+.b:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.b.g{background:#2fb872}.b.y{background:#f5a623}.b.p{background:var(--ac2)}
+.b.wide{grid-column:span 2}.b:disabled{opacity:.4}
+.msg{text-align:center;font-weight:700;min-height:24px;margin:4px 0}
+.ex{text-align:center}.ex img{width:60%;max-width:220px;border-radius:16px;border:4px solid #fff;box-shadow:0 4px 0 rgba(0,0,0,.15);cursor:pointer}
+.ex small{display:block;margin-top:4px}
+:root,body{background-color:#ffe9a8}
+</style></head><body>
+<div class="app">
+<h1>🔔 Puzzle Bunyi Benda 🥁</h1>
+<div class="card">
+ <div class="lbl">🖼️ Pilih Gambar</div><div class="row" id="pics"></div>
+ <div class="lbl" style="margin-top:8px">⭐ Tingkat</div><div class="row" id="lvls"></div>
+ <div class="lbl" style="margin-top:8px">🎨 Tema Warna</div><div class="row" id="themes"></div>
+</div>
+<div class="stats"><div class="stat">⏱️ <span id="time">00:00</span></div><div class="stat">👣 <span id="steps">0</span></div></div>
+<div class="msg" id="msg"></div>
+<div class="wrap"><div class="board" id="board"></div>
+ <div class="cover" id="cover"><div>Tekan <b>Mulai</b> ya! 👇</div></div></div>
+<div class="btns">
+ <button class="b g wide" id="bStart">▶️ Mulai</button>
+ <button class="b p" id="bShuf">🔀 Acak</button>
+ <button class="b" id="bReset">↩️ Reset</button>
+ <button class="b y" id="bHint">💡 Petunjuk</button>
+ <button class="b g" id="bNext" disabled>➡️ Level Berikutnya</button>
+</div>
+<div class="card ex"><div class="lbl">Gambar contoh (ketuk untuk dengar bunyi 🔊)</div><img id="ex" alt="Gambar contoh"><small id="exn"></small></div>
+</div>
+<script>
+const W=(bg,body,t)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">${bg}${body}<text x="150" y="38" font-size="30" font-weight="bold" text-anchor="middle" fill="#d62f5a" font-family="Arial">${t}</text></svg>`;
+const SKY='<rect width="300" height="300" fill="#bfe8ff"/><circle cx="45" cy="75" r="30" fill="#ffd93b"/><ellipse cx="230" cy="90" rx="40" ry="18" fill="#fff"/><rect y="235" width="300" height="65" fill="#6fcf6f"/>';
+const PICS=[
+{n:"Lonceng",e:"🔔",t:"Kring! Kring!",s:W(SKY,'<path d="M150 70C110 70 100 120 95 170L75 210H225L205 170C200 120 190 70 150 70Z" fill="#ffc933" stroke="#e09a00" stroke-width="6"/><circle cx="150" cy="64" r="12" fill="#e09a00"/><circle cx="150" cy="226" r="17" fill="#8a4b1f"/><path d="M115 100Q110 140 105 170" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round"/>',"KRING!")},
+{n:"Drum",e:"🥁",t:"Dug! Dug!",s:W('<rect width="300" height="300" fill="#ffe8c7"/><circle cx="260" cy="60" r="25" fill="#ffb347"/><rect y="250" width="300" height="50" fill="#d9a066"/>','<rect x="60" y="120" width="180" height="100" fill="#e8453c"/><ellipse cx="150" cy="220" rx="90" ry="26" fill="#c22f27"/><ellipse cx="150" cy="120" rx="90" ry="28" fill="#fff" stroke="#bbb" stroke-width="4"/><path d="M60 125L105 215L150 125L195 215L240 125" stroke="#ffd93b" stroke-width="7" fill="none"/><line x1="70" y1="40" x2="135" y2="110" stroke="#8a4b1f" stroke-width="9" stroke-linecap="round"/><line x1="230" y1="40" x2="165" y2="110" stroke="#8a4b1f" stroke-width="9" stroke-linecap="round"/><circle cx="70" cy="40" r="10" fill="#8a4b1f"/><circle cx="230" cy="40" r="10" fill="#8a4b1f"/>',"DUG!")},
+{n:"Mobil",e:"🚗",t:"Tin! Tin!",s:W(SKY.replace('y="235" width="300" height="65" fill="#6fcf6f"','y="235" width="300" height="65" fill="#777"'),'<rect y="262" width="300" height="6" fill="#fff" opacity=".7"/><rect x="40" y="150" width="220" height="70" rx="20" fill="#2f80ed"/><path d="M85 150L110 100H190L220 150Z" fill="#2f80ed"/><path d="M98 148L115 108H148V148ZM158 148V108H186L208 148Z" fill="#cfefff"/><circle cx="90" cy="225" r="26" fill="#333"/><circle cx="90" cy="225" r="11" fill="#ccc"/><circle cx="215" cy="225" r="26" fill="#333"/><circle cx="215" cy="225" r="11" fill="#ccc"/><circle cx="255" cy="175" r="9" fill="#ffe14d"/>',"TIN TIN!")},
+{n:"Jam Weker",e:"⏰",t:"Tring! Tring!",s:W('<rect width="300" height="300" fill="#ffd6e7"/><circle cx="40" cy="260" r="30" fill="#ffb3d1"/><circle cx="270" cy="250" r="40" fill="#ffc2dc"/>','<circle cx="85" cy="85" r="28" fill="#2fb872"/><circle cx="215" cy="85" r="28" fill="#2fb872"/><line x1="105" y1="235" x2="90" y2="268" stroke="#555" stroke-width="9" stroke-linecap="round"/><line x1="195" y1="235" x2="210" y2="268" stroke="#555" stroke-width="9" stroke-linecap="round"/><circle cx="150" cy="170" r="92" fill="#ff6b6b"/><circle cx="150" cy="170" r="74" fill="#fff"/><g stroke="#333" stroke-width="5" stroke-linecap="round"><line x1="150" y1="108" x2="150" y2="120"/><line x1="150" y1="220" x2="150" y2="232"/><line x1="88" y1="170" x2="100" y2="170"/><line x1="200" y1="170" x2="212" y2="170"/></g><line x1="150" y1="170" x2="150" y2="125" stroke="#3b2f63" stroke-width="7" stroke-linecap="round"/><line x1="150" y1="170" x2="185" y2="190" stroke="#e8453c" stroke-width="7" stroke-linecap="round"/><circle cx="150" cy="170" r="8" fill="#3b2f63"/>',"TRING!")}
+];
+const LV=[{n:"Mudah 2×2",s:2},{n:"Sedang 3×3",s:3},{n:"Sulit 4×4",s:4}];
+const TH=[["🌈 Pelangi","pelangi"],["🌊 Laut","laut"],["🌳 Hutan","hutan"]];
+const uri=s=>"data:image/svg+xml;utf8,"+encodeURIComponent(s);
+const $=id=>document.getElementById(id);
+let pic=0,lv=0,order=[],start=[],sel=-1,steps=0,sec=0,tm=null,state="idle";
+let ac;
+function snd(f,d,type="sine",t0=0,v=.25){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,ac.currentTime+t0);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t0+d);o.connect(g);g.connect(ac.destination);o.start(ac.currentTime+t0);o.stop(ac.currentTime+t0+d)}catch(e){}}
+function objSound(){const n=pic;if(n==0){[0,.35,.7].forEach(t=>{snd(1320,.5,"sine",t);snd(1980,.4,"sine",t,.1)})}
+ else if(n==1){[0,.25,.5,.75].forEach(t=>snd(110,.25,"triangle",t,.6))}
+ else if(n==2){snd(420,.3,"square",0,.12);snd(420,.3,"square",.4,.12)}
+ else{for(let i=0;i<8;i++)snd(i%2?1500:1800,.06,"square",i*.09,.1)}}
+function chips(id,arr,cur,fn){const el=$(id);el.innerHTML="";arr.forEach((a,i)=>{const b=document.createElement("button");b.className="chip"+(i==cur?" on":"");b.textContent=a;b.onclick=()=>fn(i);el.appendChild(b)})}
+function drawChips(){chips("pics",PICS.map(p=>p.e+" "+p.n),pic,i=>{pic=i;newGame()});chips("lvls",LV.map(l=>l.n),lv,i=>{lv=i;newGame()});chips("themes",TH.map(t=>t[0]),TH.findIndex(t=>t[1]==document.documentElement.dataset.t),i=>{document.documentElement.dataset.t=TH[i][1];drawChips()})}
+function fmt(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function msg(t){$("msg").textContent=t}
+function shuffle(n){const N=n*n;let a;do{a=[...Array(N).keys()];for(let i=N-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}while(a.every((v,i)=>v==i));return a}
+function solved(){return order.every((v,i)=>v==i)}
+function render(){const n=LV[lv].s,b=$("board");b.style.gridTemplateColumns=`repeat(${n},1fr)`;b.style.gridTemplateRows=`repeat(${n},1fr)`;b.innerHTML="";
+ const img=`url("${uri(PICS[pic].s)}")`;
+ order.forEach((p,i)=>{const c=document.createElement("div");c.className="cell"+(i==sel?" sel":"");c.dataset.i=i;
+  const x=(p%n)/(n-1)*100,y=Math.floor(p/n)/(n-1)*100;
+  c.style.backgroundImage=img;c.style.backgroundSize=`${n*100}% ${n*100}%`;c.style.backgroundPosition=`${x}% ${y}%`;
+  c.onclick=()=>tap(i);b.appendChild(c)})}
+function tap(i){if(state!="play")return;
+ if(sel<0){sel=i;snd(600,.1);render();return}
+ if(sel==i){sel=-1;render();return}
+ [order[sel],order[i]]=[order[i],order[sel]];sel=-1;steps++;$("steps").textContent=steps;snd(800,.12,"triangle");render();
+ if(solved())win();else msg("Bagus! Lanjutkan 👍")}
+function win(){state="done";clearInterval(tm);objSound();
+ const c=$("cover");c.className="cover win";c.innerHTML=`<div>🧩 Puzzle Selesai!</div><div style="font-size:20px">🎉 ${PICS[pic].t} 🎉<br>⏱️ ${fmt(sec)} &nbsp; 👣 ${steps}</div>`;
+ msg("Hebat sekali! ⭐⭐⭐");$("bNext").disabled=false;$("bStart").textContent="▶️ Main Lagi"}
+function newGame(){clearInterval(tm);state="idle";sel=-1;steps=0;sec=0;$("steps").textContent=0;$("time").textContent="00:00";
+ order=[...Array(LV[lv].s**2).keys()];start=shuffle(LV[lv].s);order=[...start];
+ $("ex").src=uri(PICS[pic].s);$("exn").textContent=PICS[pic].n+" — "+PICS[pic].t;
+ $("bNext").disabled=true;$("bStart").textContent="▶️ Mulai";
+ const c=$("cover");c.className="cover";c.innerHTML="<div>Tekan <b>Mulai</b> ya! 👇</div>";
+ msg("Ketuk 2 kotak untuk menukar posisinya");drawChips();render()}
+function run(){clearInterval(tm);tm=setInterval(()=>{sec++;$("time").textContent=fmt(sec)},1000)}
+function begin(shuf){if(shuf){start=shuffle(LV[lv].s)}order=[...start];sel=-1;steps=0;sec=0;$("steps").textContent=0;$("time").textContent="00:00";
+ state="play";$("cover").className="cover hide";$("bNext").disabled=true;msg("Ketuk 2 kotak untuk menukar 👆");render();run()}
+$("bStart").onclick=()=>{snd(700,.15);begin(true);$("bStart").textContent="▶️ Mulai"};
+$("bShuf").onclick=()=>{if(state=="idle")return begin(true);begin(true)};
+$("bReset").onclick=()=>{if(state=="idle")return;begin(false)};
+$("bHint").onclick=()=>{if(state!="play")return msg("Tekan Mulai dulu ya!");
+ const i=order.findIndex((v,k)=>v!=k);if(i<0)return;const from=order.indexOf(i);
+ render();const cs=$("board").children;cs[i].classList.add("hint");cs[from].classList.add("hint");
+ msg("💡 Tukar dua kotak yang berkedip!");snd(900,.2,"triangle");setTimeout(()=>{[...cs].forEach(c=>c.classList.remove("hint"))},3000)};
+$("bNext").onclick=()=>{if(lv<2)lv++;else{lv=0;pic=(pic+1)%PICS.length}newGame();begin(false)};
+$("ex").onclick=objSound;
+document.documentElement.dataset.t="pelangi";
+newGame();
+</script></body></html>
